@@ -1,48 +1,58 @@
-/* Fullscreen & reset */
-html, body {
-  margin: 0; padding: 0;
-  width: 100%; height: 100%;
-  overflow: hidden;
-  background: #222;
-}
-canvas#world {
-  position: absolute; top: 0; left: 0;
-  width: 100vw; height: 100vh;
+/* RESET & FULLSCREEN */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width:100%; height:100%; overflow:hidden; background:#1e1e1e; color:#eee; font-family:sans-serif; }
+
+/* CANVAS */
+#world {
+  position:absolute; top:0; left:0;
+  width:100vw; height:100vh;
+  background:#111;
 }
 
-/* Toolbar latérale */
-#toolbar {
-  position: fixed; top: 0; left: 0;
-  display: flex; flex-direction: column;
-  background: rgba(30,30,30,0.8);
-  transition: transform 0.3s ease;
-  z-index: 100;
+/* BARRE BOTTOM */
+#toolbar-bottom {
+  position:fixed; bottom:0; left:0; right:0;
+  display:flex; justify-content:center; align-items:center;
+  background:rgba(30,30,30,0.9); padding:5px;
+  gap:8px; z-index:100;
 }
-#toolbar.collapsed {
-  transform: translateX(-80%);
+#toolbar-bottom button {
+  background:none; border:none; padding:8px;
+  font-size:1.2rem; color:#bbb; cursor:pointer;
+  transition:color 0.2s, transform 0.1s;
 }
-#toolbar > button#toggle-tools {
-  background: none; border: none;
-  padding: 10px; color: #fff;
-  cursor: pointer;
+#toolbar-bottom button:hover { color:#fff; transform:scale(1.1); }
+#toolbar-bottom button.active { color:#4caf50; }
+
+/* PANNEAU LATÉRAL */
+#side-panel {
+  position:fixed; top:0; right:0; bottom:0;
+  width:280px; max-width:80%;
+  background:rgba(40,40,40,0.95); padding:15px;
+  box-shadow:-2px 0 8px rgba(0,0,0,0.5);
+  transform:translateX(100%); transition:transform 0.3s ease;
+  z-index:200; overflow-y:auto;
 }
-#toolbar nav {
-  display: flex; flex-direction: column;
-  padding: 10px 0;
+#side-panel.open { transform:translateX(0); }
+#side-panel .closed { transform:translateX(100%); }
+#side-panel #close-panel {
+  background:none; border:none; font-size:1.5rem;
+  color:#bbb; float:right; cursor:pointer;
 }
-#toolbar nav .tool {
-  background: none; border: none;
-  margin: 5px; padding: 8px;
-  color: #ccc; cursor: pointer;
-  border-radius: 4px;
+#side-panel h2 {
+  margin-bottom:10px; font-size:1.2rem; color:#fff;
 }
-#toolbar nav .tool:hover,
-#toolbar nav .tool.active {
-  background: #555; color: #fff;
+#props-content {
+  display:flex; flex-direction:column; gap:10px;
+}
+/* Exemple de contrôle */
+.prop-group {
+  display:flex; justify-content:space-between; align-items:center;
+}
+.prop-group label { flex:1; }
+.prop-group input {
+  flex:1; padding:4px; border:none; border-radius:4px;
+  background:#333; color:#eee;
 }
 
-/* Icônes SVG */
-#toolbar svg {
-  width: 24px; height: 24px;
-  fill: currentColor;
-}
+/* FULLSCREEN BUTTON STYLE (optionnel) */
