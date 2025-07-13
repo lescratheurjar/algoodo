@@ -1,50 +1,48 @@
-body, html {
-  margin: 0;
-  padding: 0;
+/* Fullscreen & reset */
+html, body {
+  margin: 0; padding: 0;
+  width: 100%; height: 100%;
   overflow: hidden;
-}
-#toolbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  background: rgba(240,240,240,0.9);
-  padding: 5px;
-  z-index: 100;
-}
-#toolbar button {
-  margin: 2px;
-  padding: 5px 10px;html, body {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
-}
-#toolbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  background: rgba(240,240,240,0.9);
-  padding: 5px;
-  z-index: 100;
-}
-#toolbar button {
-  margin: 2px;
-  padding: 5px 10px;
+  background: #222;
 }
 canvas#world {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  display: block;
+  position: absolute; top: 0; left: 0;
+  width: 100vw; height: 100vh;
 }
 
+/* Toolbar latérale */
+#toolbar {
+  position: fixed; top: 0; left: 0;
+  display: flex; flex-direction: column;
+  background: rgba(30,30,30,0.8);
+  transition: transform 0.3s ease;
+  z-index: 100;
 }
-canvas#world {
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 0;
+#toolbar.collapsed {
+  transform: translateX(-80%);
+}
+#toolbar > button#toggle-tools {
+  background: none; border: none;
+  padding: 10px; color: #fff;
+  cursor: pointer;
+}
+#toolbar nav {
+  display: flex; flex-direction: column;
+  padding: 10px 0;
+}
+#toolbar nav .tool {
+  background: none; border: none;
+  margin: 5px; padding: 8px;
+  color: #ccc; cursor: pointer;
+  border-radius: 4px;
+}
+#toolbar nav .tool:hover,
+#toolbar nav .tool.active {
+  background: #555; color: #fff;
+}
+
+/* Icônes SVG */
+#toolbar svg {
+  width: 24px; height: 24px;
+  fill: currentColor;
 }
