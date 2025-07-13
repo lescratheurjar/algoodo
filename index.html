@@ -1,25 +1,32 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Algodoo Clone</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="toolbar">
-    <button id="select">Select</button>
-    <button id="circle">Circle</button>
-    <button id="rect">Rectangle</button>
-    <button id="link">Link</button>
-    <button id="motor">Motor</button>
-    <button id="fluid">Fluid</button>
-    <button id="fullscreen">Plein écran</button>
+
+  <div id="toolbar" class="collapsed">
+    <button id="toggle-tools" title="Ouvrir/Fermer"><svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+    <nav>
+      <button id="select" class="tool" title="Sélection"><svg viewBox="0 0 24 24"><path d="M..." /></svg></button>
+      <button id="circle" class="tool" title="Cercle"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg></button>
+      <button id="rect" class="tool" title="Rectangle"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16"/></svg></button>
+      <button id="link" class="tool" title="Lier"><svg viewBox="0 0 24 24"><path d="M..." /></svg></button>
+      <button id="motor" class="tool" title="Moteur"><svg viewBox="0 0 24 24"><path d="M..." /></svg></button>
+      <button id="fluid" class="tool" title="Fluide"><svg viewBox="0 0 24 24"><path d="M..." /></svg></button>
+      <button id="paint" class="tool" title="Peindre sol"><svg viewBox="0 0 24 24"><path d="M..." /></svg></button>
+      <button id="fullscreen" title="Plein écran"><svg viewBox="0 0 24 24"><path d="M..." /></svg></button>
+    </nav>
   </div>
+
   <canvas id="world"></canvas>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/matter-liquid"></script>
   <script src="script.js"></script>
+
 </body>
 </html>
