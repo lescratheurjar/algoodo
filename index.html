@@ -8,28 +8,44 @@
 </head>
 <body>
 
+  <!-- Panneau de propriétés -->
   <div id="side-panel" class="closed">
     <button id="close-panel" aria-label="Fermer">×</button>
     <h2>Propriétés</h2>
     <div id="props-content">
-      <!-- les contrôles (masse, friction, restitution…) -->
+      <!-- Contrôles dynamiques (masse, friction…) -->
+      <div class="prop-group">
+        <label for="mass">Masse</label>
+        <input type="number" id="mass" step="0.1" value="1">
+      </div>
+      <div class="prop-group">
+        <label for="friction">Friction</label>
+        <input type="number" id="friction" step="0.01" value="0.1">
+      </div>
+      <div class="prop-group">
+        <label for="restitution">Rebond</label>
+        <input type="number" id="restitution" step="0.05" value="0.8">
+      </div>
     </div>
   </div>
 
+  <!-- Canvas de simulation -->
   <canvas id="world"></canvas>
 
+  <!-- Barre d’outils en bas -->
   <div id="toolbar-bottom">
-    <button class="tool" id="select"    title="Sélection">🔲</button>
-    <button class="tool" id="circle"    title="Cercle">⚪</button>
-    <button class="tool" id="rect"      title="Rectangle">▭</button>
-    <button class="tool" id="link"      title="Lier">🔗</button>
-    <button class="tool" id="motor"     title="Moteur">🔃</button>
-    <button class="tool" id="fluid"     title="Fluide">💧</button>
-    <button class="tool" id="paint"     title="Peindre sol">🖌️</button>
-    <button id="toggle-panel"          title="Propriétés">⚙️</button>
-    <button id="fullscreen"            title="Plein écran">⛶</button>
+    <button class="tool active" id="select"    title="Sélection">🔲</button>
+    <button class="tool"        id="circle"    title="Cercle">⚪</button>
+    <button class="tool"        id="rect"      title="Rectangle">▭</button>
+    <button class="tool"        id="link"      title="Lier">🔗</button>
+    <button class="tool"        id="motor"     title="Moteur">🔃</button>
+    <button class="tool"        id="fluid"     title="Fluide">💧</button>
+    <button class="tool"        id="paint"     title="Peindre sol">🖌️</button>
+    <button id="toggle-panel"               title="Propriétés">⚙️</button>
+    <button id="fullscreen"                 title="Plein écran">⛶</button>
   </div>
 
+  <!-- Bibliothèques et script principal -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/matter-liquid"></script>
   <script src="script.js"></script>
