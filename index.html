@@ -3,37 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Algodoo Clone</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>Clone Algodoo Mobile</title>
+  <style>
+    /* RESET & FULLSCREEN */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width:100%; height:100%; overflow:hidden; background:#1e1e1e; font-family:sans-serif; }
+    /* CANVAS */
+    #world {
+      position:absolute; top:0; left:0;
+      width:100vw; height:100vh;
+      background:#111;
+    }
+    /* TOOLBAR */
+    #toolbar {
+      position:fixed; top:0; left:0; right:0;
+      display:flex; align-items:center;
+      background:rgba(30,30,30,0.9); padding:5px 10px;
+      gap:8px; z-index:100; overflow-x:auto;
+    }
+    #toolbar button, #toolbar label {
+      color:#bbb; font-size:1rem;
+      background:none; border:none;
+      cursor:pointer; display:flex; align-items:center;
+    }
+    #toolbar button.tool {
+      font-size:1.2rem; padding:6px;
+      transition:color .2s, transform .1s;
+    }
+    #toolbar button.tool:hover,
+    #toolbar button#fullscreen:hover {
+      color:#fff; transform:scale(1.1);
+    }
+    #toolbar button.tool.active {
+      color:#4caf50;
+    }
+    #toolbar input {
+      width:60px; margin-left:4px;
+      background:#333; border:none; border-radius:4px;
+      color:#eee; padding:2px 4px;
+    }
+  </style>
 </head>
 <body>
 
-  <!-- Panneau de propriétés -->
-  <div id="side-panel" class="closed">
-    <button id="close-panel" aria-label="Fermer">×</button>
-    <h2>Propriétés</h2>
-    <div id="props-content">
-      <!-- Contrôles dynamiques (masse, friction…) -->
-      <div class="prop-group">
-        <label for="mass">Masse</label>
-        <input type="number" id="mass" step="0.1" value="1">
-      </div>
-      <div class="prop-group">
-        <label for="friction">Friction</label>
-        <input type="number" id="friction" step="0.01" value="0.1">
-      </div>
-      <div class="prop-group">
-        <label for="restitution">Rebond</label>
-        <input type="number" id="restitution" step="0.05" value="0.8">
-      </div>
-    </div>
-  </div>
-
-  <!-- Canvas de simulation -->
-  <canvas id="world"></canvas>
-
-  <!-- Barre d’outils en bas -->
-  <div id="toolbar-bottom">
+  <!-- Barre d'outils -->
+  <div id="toolbar">
     <button class="tool active" id="select"    title="Sélection">🔲</button>
     <button class="tool"        id="circle"    title="Cercle">⚪</button>
     <button class="tool"        id="rect"      title="Rectangle">▭</button>
@@ -41,14 +55,162 @@
     <button class="tool"        id="motor"     title="Moteur">🔃</button>
     <button class="tool"        id="fluid"     title="Fluide">💧</button>
     <button class="tool"        id="paint"     title="Peindre sol">🖌️</button>
-    <button id="toggle-panel"               title="Propriétés">⚙️</button>
-    <button id="fullscreen"                 title="Plein écran">⛶</button>
+    <label>
+      Masse
+      <input type="number" id="mass" value="1" step="0.1" title="Masse">
+    </label>
+    <label>
+      Friction
+      <input type="number" id="friction" value="0.1" step="0.01" title="Friction">
+    </label>
+    <label>
+      Rebond
+      <input type="number" id="restitution" value="0.8" step="0.05" title="Rebond">
+    </label>
+    <button id="fullscreen" title="Plein écran">⛶</button>
   </div>
 
-  <!-- Bibliothèques et script principal -->
+  <!-- Canvas de simulation -->
+  <canvas id="world"></canvas>
+
+  <!-- Matter.js et plugin fluides -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/matter-liquid"></script>
-  <script src="script.js"></script>
 
+  <script>
+  // Imports Matter.js
+  const { Engine, Render, Runner, Bodies, Composite, Mouse, MouseConstraint,
+          Constraint, Events, Body, Vector } = Matter;
+
+  // --- MOTEUR ---
+  const engine = Engine.create();
+  engine.world.gravity.y = 1;
+
+  // --- RENDU ---
+  const canvas = document.getElementById('world');
+  const render = Render.create({
+    canvas, engine,
+    options: { wireframes: false }
+  });
+  Render.run(render);
+  Runner.run(Runner.create(), engine);
+
+  // --- RESIZE & FULLSCREEN ---
+  function resize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    canvas.width = w; canvas.height = h;
+    render.options.width = w; render.options.height = h;
+    Render.lookAt(render, { min:{x:0,y:0}, max:{x:w,y:h} });
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  document.getElementById('fullscreen').onclick = () => {
+    document.fullscreenElement
+      ? document.exitFullscreen()
+      : document.documentElement.requestFullscreen();
+  };
+
+  // --- SOL STATIQUE INVISIBLE ---
+  const ground = Bodies.rectangle(0,0,0,0, { isStatic:true, render:{ visible:false } });
+  Composite.add(engine.world, ground);
+
+  // --- SOURIS / TACTILE ---
+  const mouse = Mouse.create(render.canvas);
+  const mc = MouseConstraint.create(engine, {
+    mouse, constraint:{ stiffness:0.2, render:{ visible:false } }
+  });
+  Composite.add(engine.world, mc);
+
+  // --- GESTION OUTILS ---
+  let tool = 'select';
+  const toolButtons = document.querySelectorAll('#toolbar .tool');
+  toolButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tool = btn.id;
+      toolButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  // --- PROPS ---
+  function getProps() {
+    return {
+      mass: parseFloat(document.getElementById('mass').value),
+      friction: parseFloat(document.getElementById('friction').value),
+      restitution: parseFloat(document.getElementById('restitution').value)
+    };
+  }
+
+  // --- VARIABLES ---
+  let linkA = null, motorBody = null, paintPoints = [];
+
+  // --- INTERACTIONS ---
+  render.canvas.addEventListener('pointerdown', e => {
+    const pos = { x:e.clientX, y:e.clientY };
+    const props = getProps();
+
+    if (tool === 'paint') {
+      paintPoints = [pos];
+      return;
+    }
+    if (tool === 'circle') {
+      Composite.add(engine.world, Bodies.circle(pos.x,pos.y,30, props));
+    }
+    if (tool === 'rect') {
+      Composite.add(engine.world, Bodies.rectangle(pos.x,pos.y,80,50, props));
+    }
+    if (tool === 'fluid') {
+      for (let i=0; i<10; i++) {
+        const px = pos.x + (Math.random()-0.5)*60;
+        const py = pos.y + (Math.random()-0.5)*60;
+        Composite.add(engine.world, Bodies.circle(px,py,5, {
+          density: 0.001, friction: 0.05, restitution: 0.3
+        }));
+      }
+    }
+  });
+
+  render.canvas.addEventListener('pointermove', e => {
+    if (tool==='paint' && paintPoints.length) {
+      paintPoints.push({ x:e.clientX, y:e.clientY });
+    }
+  });
+
+  render.canvas.addEventListener('pointerup', () => {
+    if (tool==='paint' && paintPoints.length>1) {
+      const verts = paintPoints.map(p=>Vector.create(p.x,p.y));
+      const wall = Bodies.fromVertices(0,0,verts, {
+        isStatic: true,
+        render: { fillStyle: '#444' }
+      }, true);
+      Composite.add(engine.world, wall);
+    }
+    paintPoints = [];
+  });
+
+  // --- LINK & MOTOR ---
+  Events.on(mc, 'startdrag', ev => {
+    if (tool==='link') {
+      if (!linkA) linkA = ev.body;
+      else if (ev.body && ev.body!==linkA) {
+        const len = Vector.magnitude(Vector.sub(linkA.position, ev.body.position));
+        Composite.add(engine.world, Constraint.create({
+          bodyA: linkA, bodyB: ev.body,
+          length: len, stiffness: 0.7
+        }));
+        linkA = null;
+      }
+    }
+    if (tool==='motor') {
+      motorBody = ev.body;
+      if (motorBody) motorBody.frictionAir = 0.02;
+    }
+  });
+
+  Events.on(engine, 'beforeUpdate', () => {
+    if (motorBody) Body.rotate(motorBody, 0.02);
+  });
+  </script>
 </body>
 </html>
