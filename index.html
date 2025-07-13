@@ -73,7 +73,8 @@
   <!-- Canvas de simulation -->
   <canvas id="world"></canvas>
 
-  <!-- Matter.js et plugin fluides -->
+  <!-- Librairies -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/poly-decomp/0.3.0/decomp.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/matter-liquid"></script>
 
@@ -82,7 +83,7 @@
   const { Engine, Render, Runner, Bodies, Composite, Mouse, MouseConstraint,
           Constraint, Events, Body, Vector } = Matter;
 
-  // --- INITIALISATION DU MOTEUR & RENDU ---
+  // --- INITIALISATION ---
   const engine = Engine.create();
   engine.world.gravity.y = 1;
 
@@ -99,17 +100,22 @@
   let linkA = null, motorBody = null;
   let paintPoints = [];
   let floorBody = null;
+  let spawnInterval = null;
+  let lastPos = { x:0, y:0 };
 
-  // --- FONCTION POUR CRÉER/RECRÉER LE SOL ---
+  // --- CRÉATION / MISE À JOUR DU SOL ---
   function createFloor() {
     if (floorBody) Composite.remove(engine.world, floorBody);
     const w = window.innerWidth;
     const h = window.innerHeight;
-    floorBody = Bodies.rectangle(w/2, h + 25, w, 50, { isStatic: true, render: { fillStyle: '#444' }});
+    floorBody = Bodies.rectangle(w/2, h + 25, w, 50, {
+      isStatic: true,
+      render: { fillStyle: '#444' }
+    });
     Composite.add(engine.world, floorBody);
   }
 
-  // --- REDIMENSIONNEMENT & FULLSCREEN ---
+  // --- RESIZE & FULLSCREEN ---
   function resize() {
     const w = window.innerWidth, h = window.innerHeight;
     canvas.width = w; canvas.height = h;
@@ -143,7 +149,7 @@
     });
   });
 
-  // --- RÉCUPÉRATION DES PROPRIÉTÉS --
+  // --- RÉCUPÉRATION DES PROPRIÉTÉS ---
   function getProps() {
     return {
       mass: parseFloat(document.getElementById('mass').value),
@@ -152,40 +158,35 @@
     };
   }
 
-  // --- INTERACTIONS CANVAS ---
+  // --- SPAWN CONTINU & PAINT ---
   render.canvas.addEventListener('pointerdown', e => {
-    const pos = { x: e.clientX, y: e.clientY };
+    lastPos = { x:e.clientX, y:e.clientY };
     const props = getProps();
 
     if (tool === 'paint') {
-      paintPoints = [pos];
+      paintPoints = [lastPos];
       return;
     }
-    if (tool === 'circle') {
-      Composite.add(engine.world, Bodies.circle(pos.x, pos.y, 30, props));
-    }
-    if (tool === 'rect') {
-      Composite.add(engine.world, Bodies.rectangle(pos.x, pos.y, 80, 50, props));
-    }
-    if (tool === 'fluid') {
-      for (let i = 0; i < 10; i++) {
-        const px = pos.x + (Math.random() - 0.5) * 60;
-        const py = pos.y + (Math.random() - 0.5) * 60;
-        Composite.add(engine.world, Bodies.circle(px, py, 5, {
-          density: 0.001, friction: 0.05, restitution: 0.3
-        }));
-      }
-    }
+
+    // première création immédiate
+    spawn(lastPos, props);
+
+    // puis en continu
+    spawnInterval = setInterval(() => spawn(lastPos, props), 100);
   });
 
   render.canvas.addEventListener('pointermove', e => {
-    if (tool === 'paint' && paintPoints.length) {
-      paintPoints.push({ x: e.clientX, y: e.clientY });
+    lastPos = { x:e.clientX, y:e.clientY };
+    if (tool==='paint' && paintPoints.length) {
+      paintPoints.push(lastPos);
     }
   });
 
   render.canvas.addEventListener('pointerup', () => {
-    if (tool === 'paint' && paintPoints.length > 1) {
+    clearInterval(spawnInterval);
+    spawnInterval = null;
+
+    if (tool==='paint' && paintPoints.length>1) {
       const verts = paintPoints.map(p => Vector.create(p.x, p.y));
       const wall = Bodies.fromVertices(0, 0, verts, {
         isStatic: true,
@@ -196,11 +197,29 @@
     paintPoints = [];
   });
 
+  function spawn(pos, props) {
+    if (tool === 'circle') {
+      Composite.add(engine.world, Bodies.circle(pos.x, pos.y, 30, props));
+    }
+    if (tool === 'rect') {
+      Composite.add(engine.world, Bodies.rectangle(pos.x, pos.y, 80, 50, props));
+    }
+    if (tool === 'fluid') {
+      for (let i=0; i<5; i++) {
+        const px = pos.x + (Math.random()-0.5)*40;
+        const py = pos.y + (Math.random()-0.5)*40;
+        Composite.add(engine.world, Bodies.circle(px, py, 5, {
+          density: 0.001, friction: 0.05, restitution: 0.3
+        }));
+      }
+    }
+  }
+
   // --- LIEN & MOTEUR ---
   Events.on(mc, 'startdrag', ev => {
-    if (tool === 'link') {
+    if (tool==='link') {
       if (!linkA) linkA = ev.body;
-      else if (ev.body && ev.body !== linkA) {
+      else if (ev.body && ev.body!==linkA) {
         const len = Vector.magnitude(Vector.sub(linkA.position, ev.body.position));
         Composite.add(engine.world, Constraint.create({
           bodyA: linkA, bodyB: ev.body,
@@ -209,7 +228,7 @@
         linkA = null;
       }
     }
-    if (tool === 'motor') {
+    if (tool==='motor') {
       motorBody = ev.body;
       if (motorBody) motorBody.frictionAir = 0.02;
     }
