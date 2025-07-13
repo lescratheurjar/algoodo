@@ -1,29 +1,39 @@
-// Setup du moteur Matter.js et du rendu
-const { Engine, Render, Runner, Bodies, Composite, Mouse, MouseConstraint, Constraint, Events, Body, Vector } = Matter;
-const engine = Engine.create();
-engine.world.gravity.y = 1; // gravité
+// Imports
+const { Engine, Render, Runner, Bodies, Composite, Mouse, MouseConstraint,
+        Constraint, Events, Body, Vector } = Matter;
 
-// Canvas et rendu
+// Initialisation
+const engine = Engine.create();
+engine.world.gravity.y = 1;
+
 const canvas = document.getElementById('world');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
 const render = Render.create({
   canvas: canvas,
   engine: engine,
-  options: {
-    width: window.innerWidth,
-    height: window.innerHeight,
-    wireframes: false
-  }
+  options: { wireframes: false }
 });
 Render.run(render);
 Runner.run(Runner.create(), engine);
 
-// Sol statique
-const ground = Bodies.rectangle(window.innerWidth/2, window.innerHeight+25, window.innerWidth, 50, { isStatic: true });
+// Fonction pour redimensionner correctement
+function resize() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  canvas.width = w;
+  canvas.height = h;
+  render.options.width = w;
+  render.options.height = h;
+  Render.lookAt(render, { min: { x: 0, y: 0 }, max: { x: w, y: h } });
+}
+window.addEventListener('resize', resize);
+resize();  // appel initial
+
+// Sol
+const ground = Bodies.rectangle(window.innerWidth/2, window.innerHeight+25,
+                                window.innerWidth, 50, { isStatic: true });
 Composite.add(engine.world, ground);
 
-// Interaction souris/tactile
+// Souris / tactile
 const mouse = Mouse.create(render.canvas);
 const mouseConstraint = MouseConstraint.create(engine, {
   mouse: mouse,
@@ -31,78 +41,63 @@ const mouseConstraint = MouseConstraint.create(engine, {
 });
 Composite.add(engine.world, mouseConstraint);
 
-// Outils de dessin
+// Outils
 let tool = 'select';
-document.getElementById('select').onclick = () => tool = 'select';
-document.getElementById('circle').onclick = () => tool = 'circle';
-document.getElementById('rect').onclick = () => tool = 'rect';
-document.getElementById('link').onclick = () => tool = 'link';
-document.getElementById('motor').onclick = () => tool = 'motor';
-document.getElementById('fluid').onclick = () => tool = 'fluid';
+['select','circle','rect','link','motor','fluid'].forEach(id => {
+  document.getElementById(id).onclick = () => tool = id;
+});
 
-// Variables pour certains outils
-let linkBody = null;
-let motorBody = null;
+// Fullscreen
+document.getElementById('fullscreen').onclick = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
+};
 
-// Création d'objets au clic/touch
-render.canvas.addEventListener('pointerdown', function(event) {
-  const pos = { x: event.clientX, y: event.clientY };
+// Variables aides
+let linkBody = null, motorBody = null;
+
+// Création d’objets
+render.canvas.addEventListener('pointerdown', e => {
+  const pos = { x: e.clientX, y: e.clientY };
   if (tool === 'circle') {
-    const circle = Bodies.circle(pos.x, pos.y, 30, { mass: 1, friction: 0.1, restitution: 0.8 });
-    Composite.add(engine.world, circle);
+    Composite.add(engine.world,
+      Bodies.circle(pos.x, pos.y, 30, { mass: 1, friction: 0.1, restitution: 0.8 }));
   }
   if (tool === 'rect') {
-    const rect = Bodies.rectangle(pos.x, pos.y, 80, 50, { mass: 1, friction: 0.1, restitution: 0.8 });
-    Composite.add(engine.world, rect);
+    Composite.add(engine.world,
+      Bodies.rectangle(pos.x, pos.y, 80, 50, { mass: 1, friction: 0.1, restitution: 0.8 }));
   }
   if (tool === 'fluid') {
-    // Génère un groupe de petites particules pour simuler un fluide
     for (let i = 0; i < 10; i++) {
-      const px = pos.x + (Math.random() - 0.5) * 60;
-      const py = pos.y + (Math.random() - 0.5) * 60;
-      const particle = Bodies.circle(px, py, 5, { density: 0.001, friction: 0.05, restitution: 0.3 });
-      Composite.add(engine.world, particle);
+      const px = pos.x + (Math.random()-0.5)*60;
+      const py = pos.y + (Math.random()-0.5)*60;
+      Composite.add(engine.world,
+        Bodies.circle(px, py, 5, { density: 0.001, friction: 0.05, restitution: 0.3 }));
     }
   }
 });
 
-// Outil "Link" : relier deux corps par une contrainte lors du drag
-Events.on(mouseConstraint, 'startdrag', function(event) {
+// Contrainte (link) et moteur
+Events.on(mouseConstraint, 'startdrag', ev => {
   if (tool === 'link') {
-    if (!linkBody) {
-      linkBody = event.body;
-    } else {
-      const bodyA = linkBody;
-      const bodyB = event.body;
-      if (bodyA && bodyB && bodyA !== bodyB) {
-        const length = Vector.magnitude(Vector.sub(bodyA.position, bodyB.position));
-        const link = Constraint.create({ bodyA: bodyA, bodyB: bodyB, length: length, stiffness: 0.7 });
-        Composite.add(engine.world, link);
+    if (!linkBody) linkBody = ev.body;
+    else {
+      if (linkBody !== ev.body) {
+        const len = Vector.magnitude(Vector.sub(linkBody.position, ev.body.position));
+        Composite.add(engine.world,
+          Constraint.create({ bodyA: linkBody, bodyB: ev.body, length: len, stiffness: 0.7 }));
       }
       linkBody = null;
     }
   }
-});
-
-// Outil "Motor" : appliquer un couple constant à un corps
-Events.on(mouseConstraint, 'startdrag', function(event) {
   if (tool === 'motor') {
-    motorBody = event.body;
+    motorBody = ev.body;
     if (motorBody) motorBody.frictionAir = 0.02;
   }
 });
-Events.on(engine, 'beforeUpdate', function() {
-  if (motorBody) {
-    Body.rotate(motorBody, 0.02);
-  }
-});
-
-// Adapter la vue au redimensionnement
-window.addEventListener('resize', () => {
-  render.canvas.width = window.innerWidth;
-  render.canvas.height = window.innerHeight;
-  Render.lookAt(render, {
-    min: { x: 0, y: 0 },
-    max: { x: window.innerWidth, y: window.innerHeight }
-  });
+Events.on(engine, 'beforeUpdate', () => {
+  if (motorBody) Body.rotate(motorBody, 0.02);
 });
